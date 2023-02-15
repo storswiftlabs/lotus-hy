@@ -172,6 +172,11 @@ func (sm *StateManager) HandleStateForks(ctx context.Context, root cid.Cid, heig
 	var err error
 	u := sm.stateMigrations[height]
 	if u != nil && u.upgrade != nil {
+		if migCid, ok := u.migratedStateroots[root]; ok {
+			log.Warnw("SKIP migration", "height", height, "from", root, "to", migCid)
+			return migCid, nil
+		}
+
 		startTime := time.Now()
 		log.Warnw("STARTING migration", "height", height, "from", root)
 		// Yes, we clone the cache, even for the final upgrade epoch. Why? Reverts. We may
@@ -192,6 +197,9 @@ func (sm *StateManager) HandleStateForks(ctx context.Context, root cid.Cid, heig
 			"to", retCid,
 			"duration", time.Since(startTime),
 		)
+
+		// Only set if migration ran, we do not want a root => root mapping
+		u.migratedStateroots[root] = retCid
 	}
 
 	return retCid, nil

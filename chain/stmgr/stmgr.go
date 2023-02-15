@@ -51,9 +51,10 @@ type versionSpec struct {
 }
 
 type migration struct {
-	upgrade       MigrationFunc
-	preMigrations []PreMigration
-	cache         *nv16.MemMigrationCache
+	upgrade            MigrationFunc
+	preMigrations      []PreMigration
+	cache              *nv16.MemMigrationCache
+	migratedStateroots map[cid.Cid]cid.Cid
 }
 
 type Executor interface {
@@ -119,9 +120,10 @@ func NewStateManager(cs *store.ChainStore, exec Executor, sys vm.SyscallBuilder,
 		for _, upgrade := range us {
 			if upgrade.Migration != nil || upgrade.PreMigrations != nil {
 				migration := &migration{
-					upgrade:       upgrade.Migration,
-					preMigrations: upgrade.PreMigrations,
-					cache:         nv16.NewMemMigrationCache(),
+					upgrade:            upgrade.Migration,
+					preMigrations:      upgrade.PreMigrations,
+					cache:              nv16.NewMemMigrationCache(),
+					migratedStateroots: make(map[cid.Cid]cid.Cid),
 				}
 				stateMigrations[upgrade.Height] = migration
 			}
