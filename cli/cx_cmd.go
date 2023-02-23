@@ -23,17 +23,18 @@ var ExCmd = &cli.Command{
 	Usage: "The extension interface to the filecoin browser project.",
 	Subcommands: []*cli.Command{
 		ExAddressTransformationCmd,
+		ChainExCmd,
 	},
 }
 
 var ExAddressTransformationCmd = &cli.Command{
 	Name:      "addr-description",
 	Aliases:   []string{"addrdescription"},
-	Usage:     "address description",
+	Usage:     "Get ID Fil Eth address from id/fil/eth address",
 	ArgsUsage: "address",
 	Action: func(cctx *cli.Context) error {
 		if argc := cctx.Args().Len(); argc < 1 {
-			return xerrors.Errorf("must pass the address")
+			return xerrors.Errorf("must pass the address(id/fil/eth)")
 		}
 
 		api, closer, err := GetFullNodeAPI(cctx)

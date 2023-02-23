@@ -115,7 +115,7 @@ func (sm *EXSignedMessage) MarshalJSON() ([]byte, error) {
 }
 
 var ChainExCmd = &cli.Command{
-	Name:  "chainex",
+	Name:  "chain",
 	Usage: "Interact with filecoin blockchain",
 	Subcommands: []*cli.Command{
 		ChainGetBlockEX,
