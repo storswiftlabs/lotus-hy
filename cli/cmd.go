@@ -78,6 +78,7 @@ var Commands = []*cli.Command{
 	WithCategory("developer", MpoolCmd),
 	WithCategory("developer", StateCmd),
 	WithCategory("developer", ChainCmd),
+	WithCategory("developer", ChainExCmd),
 	WithCategory("developer", LogCmd),
 	WithCategory("developer", WaitApiCmd),
 	WithCategory("developer", FetchParamCmd),
