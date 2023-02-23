@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/filecoin-project/go-address"
+	"github.com/filecoin-project/lotus/chain/actors"
 	"github.com/filecoin-project/lotus/chain/actors/builtin"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
@@ -12,7 +13,7 @@ import (
 )
 
 type EXAddressDescription struct {
-	ID       address.Address
+	ID       string
 	Filecoin address.Address
 	Eth      ethtypes.EthAddress
 	Type     string
@@ -71,8 +72,20 @@ var ExAddressTransformationCmd = &cli.Command{
 
 		actor, err := api.StateGetActor(ctx, faddr, types.EmptyTSK)
 		if err == nil {
-			out.ID = *actor.Address
-			out.Type = builtin.ActorNameByCode(actor.Code)
+			id, err := api.StateLookupID(ctx, addr, types.EmptyTSK)
+			if err != nil {
+				out.ID = "n/a"
+			} else {
+				out.ID = id.String()
+			}
+			if name, _, ok := actors.GetActorMetaByCode(actor.Code); ok {
+				out.Type = name
+			} else {
+				out.Type = "unknown"
+			}
+		} else {
+			out.ID = "unknown"
+			out.Type = "unknown"
 		}
 
 		byte, err := json.MarshalIndent(out, "", "  ")
