@@ -66,6 +66,11 @@ var ExAddressTransformationCmd = &cli.Command{
 			}
 		}
 
+		faddr, err = api.StateAccountKey(ctx, faddr, types.EmptyTSK)
+		if err != nil {
+			return err
+		}
+
 		out.Filecoin = faddr
 		out.Eth = eaddr
 
