@@ -71,7 +71,7 @@ var ExAddressTransformationCmd = &cli.Command{
 
 		actor, err := api.StateGetActor(ctx, faddr, types.EmptyTSK)
 		if err == nil {
-			id, err := api.StateLookupID(ctx, addr, types.EmptyTSK)
+			id, err := api.StateLookupID(ctx, faddr, types.EmptyTSK)
 			if err != nil {
 				out.ID = "n/a"
 			} else {
