@@ -7,6 +7,7 @@ var MinerExCmd = &cli.Command{
 	Usage: "Miner with filecoin blockchain",
 	Subcommands: []*cli.Command{
 		MinerStateCmd,
+		MinerSectorCmd,
 	},
 }
 
@@ -18,6 +19,6 @@ var MinerStateCmd = &cli.Command{
 	ArgsUsage: "[miner address]",
 	
 	Action: func(cctx *cli.Context) error {
-
-	}
+		return nil
+	},
 }
