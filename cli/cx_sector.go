@@ -55,14 +55,18 @@ var MinerSectorCmd = &cli.Command{
 		}
 
 		var exMinerSectorsInfo EXMinerSectorsInfo
+		exMinerSectorsInfo.AllInitialPledge = big.NewInt(0)
+		exMinerSectorsInfo.AllExpectedDayReward = big.NewInt(0)
+		exMinerSectorsInfo.AllExpectedStoragePledge = big.NewInt(0)
+		exMinerSectorsInfo.AllReplacedDayReward = big.NewInt(0)
 
 		exMinerSectorsInfo.Sectors = sectors
 
 		for _, s := range sectors {
 			exMinerSectorsInfo.AllInitialPledge = big.Add(exMinerSectorsInfo.AllInitialPledge, s.InitialPledge)
-			exMinerSectorsInfo.AllExpectedDayReward = big.Add(exMinerSectorsInfo.AllExpectedDayReward, s.InitialPledge)
-			exMinerSectorsInfo.AllExpectedStoragePledge = big.Add(exMinerSectorsInfo.AllExpectedStoragePledge, s.InitialPledge)
-			exMinerSectorsInfo.AllReplacedDayReward = big.Add(exMinerSectorsInfo.AllReplacedDayReward, s.InitialPledge)
+			exMinerSectorsInfo.AllExpectedDayReward = big.Add(exMinerSectorsInfo.AllExpectedDayReward, s.ExpectedDayReward)
+			exMinerSectorsInfo.AllExpectedStoragePledge = big.Add(exMinerSectorsInfo.AllExpectedStoragePledge, s.ExpectedStoragePledge)
+			exMinerSectorsInfo.AllReplacedDayReward = big.Add(exMinerSectorsInfo.AllReplacedDayReward, s.ReplacedDayReward)
 		}
 
 		byte, err := json.MarshalIndent(exMinerSectorsInfo, "", "  ")
