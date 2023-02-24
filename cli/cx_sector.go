@@ -26,6 +26,12 @@ var MinerSectorCmd = &cli.Command{
 	Aliases:   []string{"sectors"},
 	Usage:     "Get miner all sector info",
 	ArgsUsage: "[miner address]",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "pledge",
+			Usage: "print just the miner all sectors pledge collected to commit this sector",
+		},
+	},
 	Action: func(cctx *cli.Context) error {
 		api, closer, err := GetFullNodeAPI(cctx)
 		if err != nil {
@@ -54,19 +60,25 @@ var MinerSectorCmd = &cli.Command{
 			return err
 		}
 
-		var exMinerSectorsInfo EXMinerSectorsInfo
-		exMinerSectorsInfo.AllInitialPledge = big.NewInt(0)
-		exMinerSectorsInfo.AllExpectedDayReward = big.NewInt(0)
-		exMinerSectorsInfo.AllExpectedStoragePledge = big.NewInt(0)
-		exMinerSectorsInfo.AllReplacedDayReward = big.NewInt(0)
+		exMinerSectorsInfo := EXMinerSectorsInfo{
+			MinerAddress:             maddr,
+			Height:                   ts.Height(),
+			AllInitialPledge:         big.NewInt(0),
+			AllExpectedDayReward:     big.NewInt(0),
+			AllExpectedStoragePledge: big.NewInt(0),
+			AllReplacedDayReward:     big.NewInt(0),
+		}
 
-		exMinerSectorsInfo.Sectors = sectors
-
+		
 		for _, s := range sectors {
 			exMinerSectorsInfo.AllInitialPledge = big.Add(exMinerSectorsInfo.AllInitialPledge, s.InitialPledge)
 			exMinerSectorsInfo.AllExpectedDayReward = big.Add(exMinerSectorsInfo.AllExpectedDayReward, s.ExpectedDayReward)
 			exMinerSectorsInfo.AllExpectedStoragePledge = big.Add(exMinerSectorsInfo.AllExpectedStoragePledge, s.ExpectedStoragePledge)
 			exMinerSectorsInfo.AllReplacedDayReward = big.Add(exMinerSectorsInfo.AllReplacedDayReward, s.ReplacedDayReward)
+		}
+		
+		if !cctx.Bool("pledge") {
+			exMinerSectorsInfo.Sectors = sectors
 		}
 
 		byte, err := json.MarshalIndent(exMinerSectorsInfo, "", "  ")
