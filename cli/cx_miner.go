@@ -6,8 +6,11 @@ import (
 
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/abi"
-	"github.com/filecoin-project/go-state-types/big"
 	"github.com/filecoin-project/lotus/api"
+	"github.com/filecoin-project/lotus/blockstore"
+	"github.com/filecoin-project/lotus/chain/actors/adt"
+	"github.com/filecoin-project/lotus/chain/actors/builtin/miner"
+	cbor "github.com/ipfs/go-ipld-cbor"
 	"github.com/urfave/cli/v2"
 )
 
@@ -15,10 +18,11 @@ import (
 type MinerFullData struct {
 	Address      address.Address
 	StateHeight  abi.ChainEpoch
-	MinerBalance *MinerBalance
+	MinerBalance MinerBalance
 	MinerPower   *api.MinerPower
 	MinerSectors api.MinerSectors
-	MinerInfo    api.MinerInfo
+	LockedFunds  miner.LockedFunds
+	MinerInfo    miner.MinerInfo
 }
 
 type MinerBalance struct {
@@ -123,20 +127,21 @@ var MinerStateCmd = &cli.Command{
 		}
 		minerFullData.MinerBalance.AvailableBalance = availableBalance
 
-		sectors, err := api.StateMinerSectors(ctx, maddr, nil, ts.Key())
+		mact, err := api.StateGetActor(ctx, maddr, ts.Key())
 		if err != nil {
 			return err
 		}
 
-		minerFullData.MinerBalance.InitialPledge = big.Zero()
+		tbs := blockstore.NewTieredBstore(blockstore.NewAPIBlockstore(api), blockstore.NewMemory())
 
-		for _, s := range sectors {
-			minerFullData.MinerBalance.InitialPledge = big.Add(minerFullData.MinerBalance.InitialPledge, s.InitialPledge)
+		mas, err := miner.Load(adt.WrapStore(ctx, cbor.NewCborStore(tbs)), mact)
+		if err != nil {
+			return err
 		}
+		
+		LockedFunds, _ := mas.LockedFunds()
 
-		minerFullData.MinerBalance.LockedRewards = big.Sub(minerFullData.MinerBalance.Balance,
-			big.Add(minerFullData.MinerBalance.AvailableBalance,
-				minerFullData.MinerBalance.InitialPledge))
+		minerFullData.MinerBalance.InitialPledge = LockedFunds.InitialPledgeRequirement
 
 		power, err := api.StateMinerPower(ctx, maddr, ts.Key())
 		if err != nil {
@@ -150,7 +155,7 @@ var MinerStateCmd = &cli.Command{
 		}
 		minerFullData.MinerSectors = minerSectors
 
-		minerInfo, err := api.StateMinerInfo(ctx, maddr, ts.Key())
+		minerInfo, err := mas.Info()
 		if err != nil {
 			return err
 		}
