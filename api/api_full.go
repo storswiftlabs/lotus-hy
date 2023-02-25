@@ -173,6 +173,16 @@ type FullNode interface {
 	// If oldmsgskip is set, messages from before the requested roots are also not included.
 	ChainExport(ctx context.Context, nroots abi.ChainEpoch, oldmsgskip bool, tsk types.TipSetKey) (<-chan []byte, error) //perm:read
 
+	// ChainExportRangeInternal triggers the export of a chain
+	// CAR-snapshot directly to disk. It is similar to ChainExport,
+	// except, depending on options, the snapshot can include receipts,
+	// messages and stateroots for the length between the specified head
+	// and tail, thus producing "archival-grade" snapshots that include
+	// all the on-chain data.  The header chain is included back to
+	// genesis and these snapshots can be used to initialize Filecoin
+	// nodes.
+	ChainExportRangeInternal(ctx context.Context, head, tail types.TipSetKey, cfg ChainExportConfig) error //perm:admin
+
 	// ChainPrune prunes the stored chain state and garbage collects; only supported if you
 	// are using the splitstore
 	ChainPrune(ctx context.Context, opts PruneOpts) error //perm:admin
@@ -769,6 +779,8 @@ type FullNode interface {
 	//
 	// EthAccounts will always return [] since we don't expect Lotus to manage private keys
 	EthAccounts(ctx context.Context) ([]ethtypes.EthAddress, error) //perm:read
+	// EthAddressToFilecoinAddress converts an EthAddress into an f410 Filecoin Address
+	EthAddressToFilecoinAddress(ctx context.Context, ethAddress ethtypes.EthAddress) (address.Address, error) //perm:read
 	// EthBlockNumber returns the height of the latest (heaviest) TipSet
 	EthBlockNumber(ctx context.Context) (ethtypes.EthUint64, error) //perm:read
 	// EthGetBlockTransactionCountByNumber returns the number of messages in the TipSet

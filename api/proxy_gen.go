@@ -117,7 +117,7 @@ type EthSubscriberStruct struct {
 }
 
 type EthSubscriberMethods struct {
-	EthSubscription func(p0 context.Context, p1 jsonrpc.RawParams) error `notify:"true"rpc_method:"eth_subscription"`
+	EthSubscription func(p0 context.Context, p1 jsonrpc.RawParams) error `notify:"true" rpc_method:"eth_subscription"`
 }
 
 type EthSubscriberStub struct {
@@ -139,6 +139,8 @@ type FullNodeMethods struct {
 	ChainDeleteObj func(p0 context.Context, p1 cid.Cid) error `perm:"admin"`
 
 	ChainExport func(p0 context.Context, p1 abi.ChainEpoch, p2 bool, p3 types.TipSetKey) (<-chan []byte, error) `perm:"read"`
+
+	ChainExportRangeInternal func(p0 context.Context, p1 types.TipSetKey, p2 types.TipSetKey, p3 ChainExportConfig) error `perm:"admin"`
 
 	ChainGetBlock func(p0 context.Context, p1 cid.Cid) (*types.BlockHeader, error) `perm:"read"`
 
@@ -243,6 +245,8 @@ type FullNodeMethods struct {
 	CreateBackup func(p0 context.Context, p1 string) error `perm:"admin"`
 
 	EthAccounts func(p0 context.Context) ([]ethtypes.EthAddress, error) `perm:"read"`
+
+	EthAddressToFilecoinAddress func(p0 context.Context, p1 ethtypes.EthAddress) (address.Address, error) `perm:"read"`
 
 	EthBlockNumber func(p0 context.Context) (ethtypes.EthUint64, error) `perm:"read"`
 
@@ -1435,6 +1439,17 @@ func (s *FullNodeStub) ChainExport(p0 context.Context, p1 abi.ChainEpoch, p2 boo
 	return nil, ErrNotSupported
 }
 
+func (s *FullNodeStruct) ChainExportRangeInternal(p0 context.Context, p1 types.TipSetKey, p2 types.TipSetKey, p3 ChainExportConfig) error {
+	if s.Internal.ChainExportRangeInternal == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ChainExportRangeInternal(p0, p1, p2, p3)
+}
+
+func (s *FullNodeStub) ChainExportRangeInternal(p0 context.Context, p1 types.TipSetKey, p2 types.TipSetKey, p3 ChainExportConfig) error {
+	return ErrNotSupported
+}
+
 func (s *FullNodeStruct) ChainGetBlock(p0 context.Context, p1 cid.Cid) (*types.BlockHeader, error) {
 	if s.Internal.ChainGetBlock == nil {
 		return nil, ErrNotSupported
@@ -2005,6 +2020,17 @@ func (s *FullNodeStruct) EthAccounts(p0 context.Context) ([]ethtypes.EthAddress,
 
 func (s *FullNodeStub) EthAccounts(p0 context.Context) ([]ethtypes.EthAddress, error) {
 	return *new([]ethtypes.EthAddress), ErrNotSupported
+}
+
+func (s *FullNodeStruct) EthAddressToFilecoinAddress(p0 context.Context, p1 ethtypes.EthAddress) (address.Address, error) {
+	if s.Internal.EthAddressToFilecoinAddress == nil {
+		return *new(address.Address), ErrNotSupported
+	}
+	return s.Internal.EthAddressToFilecoinAddress(p0, p1)
+}
+
+func (s *FullNodeStub) EthAddressToFilecoinAddress(p0 context.Context, p1 ethtypes.EthAddress) (address.Address, error) {
+	return *new(address.Address), ErrNotSupported
 }
 
 func (s *FullNodeStruct) EthBlockNumber(p0 context.Context) (ethtypes.EthUint64, error) {
