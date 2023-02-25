@@ -15,6 +15,7 @@ import (
 // MinerState
 type MinerFullData struct {
 	Address      address.Address
+	StateHeight  abi.ChainEpoch
 	MinerBalance *MinerBalance
 	MinerPower   *api.MinerPower
 	MinerSectors api.MinerSectors
@@ -98,13 +99,14 @@ var MinerStateCmd = &cli.Command{
 		}
 
 		var minerFullData MinerFullData
+		minerFullData.StateHeight = ts.Height()
 
 		maddr, err := address.NewFromString(cctx.Args().First())
 		if err != nil {
 			return err
 		}
 
-		newfaddr, err := api.StateAccountKey(ctx, maddr, types.EmptyTSK)
+		newfaddr, err := api.StateAccountKey(ctx, maddr, ts.Key())
 		if err == nil {
 			maddr = newfaddr
 		}
