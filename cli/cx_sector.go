@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/go-state-types/big"
 	"github.com/filecoin-project/lotus/chain/actors/builtin/miner"
+	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/urfave/cli/v2"
 )
 
@@ -31,6 +32,10 @@ var MinerSectorCmd = &cli.Command{
 			Name:  "pledge",
 			Usage: "print just the miner all sectors pledge collected to commit this sector",
 		},
+		&cli.Uint64Flag{
+			Name:  "epoch",
+			Usage: "reset head to given epoch",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		api, closer, err := GetFullNodeAPI(cctx)
@@ -51,6 +56,14 @@ var MinerSectorCmd = &cli.Command{
 		}
 
 		ts, err := LoadTipSet(ctx, cctx, api)
+		if err != nil {
+			return err
+		}
+
+		if cctx.IsSet("epoch") {
+			ts, err = api.ChainGetTipSetByHeight(ctx, abi.ChainEpoch(cctx.Uint64("epoch")), types.EmptyTSK)
+		}
+
 		if err != nil {
 			return err
 		}
