@@ -21,7 +21,6 @@ type MinerFullData struct {
 	MinerBalance MinerBalance
 	MinerPower   *api.MinerPower
 	MinerSectors api.MinerSectors
-	LockedFunds  miner.LockedFunds
 	MinerInfo    miner.MinerInfo
 }
 
@@ -142,6 +141,7 @@ var MinerStateCmd = &cli.Command{
 		LockedFunds, _ := mas.LockedFunds()
 
 		minerFullData.MinerBalance.InitialPledge = LockedFunds.InitialPledgeRequirement
+		minerFullData.MinerBalance.LockedRewards = LockedFunds.VestingFunds
 
 		power, err := api.StateMinerPower(ctx, maddr, ts.Key())
 		if err != nil {
