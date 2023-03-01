@@ -1,11 +1,16 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/abi"
+	"github.com/filecoin-project/go-state-types/builtin"
+
+	powerlib "github.com/filecoin-project/go-state-types/builtin/v9/power"
+	"github.com/filecoin-project/go-state-types/builtin/v9/reward"
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/blockstore"
 	"github.com/filecoin-project/lotus/chain/actors/adt"
@@ -16,19 +21,29 @@ import (
 
 // MinerState
 type MinerFullData struct {
-	Address      address.Address
-	StateHeight  abi.ChainEpoch
-	MinerBalance MinerBalance
-	MinerPower   *api.MinerPower
-	MinerSectors api.MinerSectors
-	MinerInfo    miner.MinerInfo
+	Address           address.Address
+	StateHeight       abi.ChainEpoch
+	MinerBalance      MinerBalance
+	MinerPower        *api.MinerPower
+	MinerSectors      api.MinerSectors
+	MinerSectorsState MinerSectorsState
+	MinerInfo         miner.MinerInfo
 }
 
 type MinerBalance struct {
-	Balance          abi.TokenAmount
-	AvailableBalance abi.TokenAmount
-	InitialPledge    abi.TokenAmount
-	LockedRewards    abi.TokenAmount
+	Balance           abi.TokenAmount
+	AvailableBalance  abi.TokenAmount
+	InitialPledge     abi.TokenAmount
+	LockedRewards     abi.TokenAmount
+	PreCommitDeposits abi.TokenAmount
+}
+
+type MinerSectorsState struct {
+	CCCount                uint64
+	DCCount                uint64
+	TerminateALLFineReward abi.TokenAmount
+	TerminateCCFineReward  abi.TokenAmount
+	TerminateDCFineReward  abi.TokenAmount
 }
 
 var MinerExCmd = &cli.Command{
@@ -137,11 +152,12 @@ var MinerStateCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		
+
 		LockedFunds, _ := mas.LockedFunds()
 
 		minerFullData.MinerBalance.InitialPledge = LockedFunds.InitialPledgeRequirement
 		minerFullData.MinerBalance.LockedRewards = LockedFunds.VestingFunds
+		minerFullData.MinerBalance.PreCommitDeposits = LockedFunds.PreCommitDeposits
 
 		power, err := api.StateMinerPower(ctx, maddr, ts.Key())
 		if err != nil {
@@ -154,6 +170,55 @@ var MinerStateCmd = &cli.Command{
 			return err
 		}
 		minerFullData.MinerSectors = minerSectors
+
+		// 获取全网奖励
+		act, err := api.StateGetActor(ctx, builtin.RewardActorAddr, ts.Key())
+		if err != nil {
+			return err
+		}
+		actorHead, err := api.ChainReadObj(ctx, act.Head)
+		if err != nil {
+			return err
+		}
+		var rewardActorState reward.State
+		if err := rewardActorState.UnmarshalCBOR(bytes.NewReader(actorHead)); err != nil {
+			return err
+		}
+
+		// 获取全网算力
+		actst, err := api.StateGetActor(ctx, builtin.StoragePowerActorAddr, ts.Key())
+		if err != nil {
+			return err
+		}
+		stactorHead, err := api.ChainReadObj(ctx, actst.Head)
+		if err != nil {
+			return err
+		}
+		var powerActorState powerlib.State
+		if err := powerActorState.UnmarshalCBOR(bytes.NewReader(stactorHead)); err != nil {
+			return err
+		}
+
+		sectors, err := api.StateMinerSectors(ctx, maddr, nil, ts.Key())
+		if err != nil {
+			return err
+		}
+
+		var dcsectors, ccsectors []*miner.SectorOnChainInfo
+		for _, s := range sectors {
+			if len(s.DealIDs) > 0 {
+				minerFullData.MinerSectorsState.DCCount++
+				dcsectors = append(dcsectors, s)
+			} else {
+				minerFullData.MinerSectorsState.CCCount++
+				ccsectors = append(ccsectors, s)
+			}
+
+		}
+
+		minerFullData.MinerSectorsState.TerminateALLFineReward = terminationPenalty(ts.Height(), rewardActorState.ThisEpochRewardSmoothed, powerActorState.ThisEpochQAPowerSmoothed, sectors)
+		minerFullData.MinerSectorsState.TerminateDCFineReward = terminationPenalty(ts.Height(), rewardActorState.ThisEpochRewardSmoothed, powerActorState.ThisEpochQAPowerSmoothed, dcsectors)
+		minerFullData.MinerSectorsState.TerminateCCFineReward = terminationPenalty(ts.Height(), rewardActorState.ThisEpochRewardSmoothed, powerActorState.ThisEpochQAPowerSmoothed, ccsectors)
 
 		minerInfo, err := mas.Info()
 		if err != nil {
