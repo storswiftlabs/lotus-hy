@@ -25,7 +25,7 @@ type MinerFullData struct {
 	StateHeight       abi.ChainEpoch
 	MinerBalance      MinerBalance
 	MinerPower        *api.MinerPower
-	MinerSectors      api.MinerSectors
+	MinerSectors      MinerSectors
 	MinerSectorsState MinerSectorsState
 	MinerInfo         miner.MinerInfo
 }
@@ -36,6 +36,11 @@ type MinerBalance struct {
 	InitialPledge     abi.TokenAmount
 	LockedRewards     abi.TokenAmount
 	PreCommitDeposits abi.TokenAmount
+}
+
+type MinerSectors struct {
+	api.MinerSectors
+	Recoveries uint64
 }
 
 type MinerSectorsState struct {
@@ -169,7 +174,12 @@ var MinerStateCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		minerFullData.MinerSectors = minerSectors
+		recoveries, err := api.StateMinerRecoveries(ctx, maddr, ts.Key())
+		if err != nil {
+			return err
+		}
+		minerFullData.MinerSectors.MinerSectors = minerSectors
+		minerFullData.MinerSectors.Recoveries, _= recoveries.Count()
 
 		// 获取全网奖励
 		act, err := api.StateGetActor(ctx, builtin.RewardActorAddr, ts.Key())
