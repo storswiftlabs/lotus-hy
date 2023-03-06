@@ -209,13 +209,17 @@ var MinerStateCmd = &cli.Command{
 			return err
 		}
 
-		sectors, err := api.StateMinerSectors(ctx, maddr, nil, ts.Key())
+		var dcsectors, ccsectors []*miner.SectorOnChainInfo
+		liveType, err := miner.AllPartSectors(mas, miner.Partition.LiveSectors)
+		if err != nil {
+			return err
+		}
+		liveSectors, err := api.StateMinerSectors(ctx, maddr, &liveType, ts.Key())
 		if err != nil {
 			return err
 		}
 
-		var dcsectors, ccsectors []*miner.SectorOnChainInfo
-		for _, s := range sectors {
+		for _, s := range liveSectors {
 			if len(s.DealIDs) > 0 {
 				minerFullData.MinerSectorsState.DCCount++
 				dcsectors = append(dcsectors, s)
@@ -223,10 +227,9 @@ var MinerStateCmd = &cli.Command{
 				minerFullData.MinerSectorsState.CCCount++
 				ccsectors = append(ccsectors, s)
 			}
-
 		}
 
-		minerFullData.MinerSectorsState.TerminateALLFineReward = terminationPenalty(ts.Height(), rewardActorState.ThisEpochRewardSmoothed, powerActorState.ThisEpochQAPowerSmoothed, sectors)
+		minerFullData.MinerSectorsState.TerminateALLFineReward = terminationPenalty(ts.Height(), rewardActorState.ThisEpochRewardSmoothed, powerActorState.ThisEpochQAPowerSmoothed, liveSectors)
 		minerFullData.MinerSectorsState.TerminateDCFineReward = terminationPenalty(ts.Height(), rewardActorState.ThisEpochRewardSmoothed, powerActorState.ThisEpochQAPowerSmoothed, dcsectors)
 		minerFullData.MinerSectorsState.TerminateCCFineReward = terminationPenalty(ts.Height(), rewardActorState.ThisEpochRewardSmoothed, powerActorState.ThisEpochQAPowerSmoothed, ccsectors)
 
